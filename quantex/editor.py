@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciAPIs
 from PyQt6.QtGui import QFont, QColor
 from languages_style import PythonStyles
+from languages_support.python import Python
 import sys
 
 class CodeEditor(QsciScintilla):
@@ -31,25 +32,26 @@ class CodeEditor(QsciScintilla):
         self.setMarginsFont(font)
 
         # === Syntax Highlighting (Python) ===
-        lexer = PythonStyles(font).get_styles()
-        # lexer = PythonStyles().get()
+        lexer = QsciLexerPython(self)
+        PythonStyles(font, lexer).get_styles()
         self.setLexer(lexer)
 
         # === Autocomplete ===
         api = QsciAPIs(lexer)
-        api.add("print")
-        api.add("range")
-        api.add("len")
-        api.add("sum")
-        api.add("hello_world") # custom suggestion
+        Python(api)
+
         api.prepare()
+        lexer.setAPIs(api)
 
         self.setAutoCompletionSource(QsciScintilla.AutoCompletionSource.AcsAll)
         self.setAutoCompletionCaseSensitivity(False)
         self.setAutoCompletionThreshold(1)
+        self.setAutoCompletionFillupsEnabled(True)
+        self.setAutoCompletionShowSingle(True)
 
         # === Initial Text ===
-        self.setText("# Custom Python Editor\n\ndef hello_world():\n    print('hello, world!')")
+        # self.setText("# Custom Python Editor\n\ndef hello_world():\n    print('hello, world!')")
+        self.setText("")
 
 
 class MainWindow(QMainWindow):
