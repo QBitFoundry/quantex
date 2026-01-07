@@ -1,6 +1,7 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QWidget, QLabel, QHBoxLayout, QStatusBar
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciAPIs
-from PyQt6.QtGui import QFont, QColor, QAction
+from PyQt6.QtGui import QFont, QColor, QAction, QPixmap
+from PyQt6.QtCore import Qt
 from languages_style import PythonStyles
 from languages_support.python import Python
 import sys
@@ -12,13 +13,16 @@ class CodeEditor(QsciScintilla):
         # === Basic Editor Configuration ===
         self.setUtf8(True)
         self.setMarginLineNumbers(0, True)
-        self.setMarginWidth(0, "00000000")
+        # self.setMarginWidth(0, "0000") # fixed line num margin
         self.setMarginsBackgroundColor(QColor("#3D3D3D"))
         self.setMarginsForegroundColor(QColor("#dedede"))
         self.setBraceMatching(QsciScintilla.BraceMatch.StrictBraceMatch)
         self.setCaretLineVisible(True)
         self.setCaretLineBackgroundColor(QColor("#393939"))
         self.setCaretForegroundColor(QColor("#ffffff"))
+        # Set the scroll to active only when text overflow horizontally.
+        self.setScrollWidthTracking(True)
+        self.setScrollWidth(1)
 
         # === Set Editor EOL type to UNIX(To solve newlines issue in windows) ===
         self.setEolMode(QsciScintilla.EolMode.EolUnix)
@@ -66,6 +70,20 @@ class CodeEditor(QsciScintilla):
             "range": "Built-in function: generates a sequence of numbers.",
             "len": "Built-in function: returns length of an object.",
         }
+
+        # === Horizontal scroll reset ===
+        def on_line_updated():
+            self.setScrollWidth(1)
+            
+        self.SCN_MODIFIED.connect(on_line_updated)
+
+        # === Line number width responsive ===
+        def on_line_num_changed():
+            margin_width = str(max(1, self.lines()))
+            self.setMarginWidth(0, f'0${margin_width}')
+        on_line_num_changed() # sets the line number correct spacing when editor is opened.
+        self.linesChanged.connect(on_line_num_changed)
+
 
     def mouseMoveEvent(self, e):
         """Override mouseMoveEvent to handle hover over specific words."""
@@ -159,6 +177,24 @@ class MainWindow(QMainWindow):
         run_menu = menubar.addMenu("&Run")
         help_menu = menubar.addMenu("&Help")
 
+        # === Language server status in top right menu bar ===
+        statusbar = QStatusBar(self)
+        self.setStatusBar(statusbar)
+        statusbar.setSizeGripEnabled(False) # Disable the default size grip.
+
+        container = QWidget()
+        container_layout = QHBoxLayout(container)
+        container_layout.setContentsMargins(8, 0, 16, 2)
+        container_layout.setSpacing(6)
+
+        self.lang_server_icon = QLabel()
+        self.lang_server_text = QLabel("Language Server")
+        container_layout.addWidget(self.lang_server_icon)
+        container_layout.addWidget(self.lang_server_text)
+        statusbar.addPermanentWidget(container)
+
+        self.lang_server_status_update("Python", "icon/path.png")
+
         # === Editor ===
         self.editor = CodeEditor()
         self.setCentralWidget(self.editor)
@@ -237,6 +273,16 @@ class MainWindow(QMainWindow):
                     file.write(code)
             except:
                 print("Fail to save as!")
+    
+    def lang_server_status_update(self, text, icon_path):
+        self.lang_server_text.setText(text)
+        # commented because icon has not been added.
+        # icon_pixel = QPixmap(icon_path).scaled(
+        #     16, 16,
+        #     Qt.AspectRatioMode.KeepAspectRatio,
+        #     Qt.TransformationMode.SmoothTransformation
+        # )
+        # self.lang_server_icon.setPixmap(icon_pixel)
     
 def main():
     app = QApplication(sys.argv)
