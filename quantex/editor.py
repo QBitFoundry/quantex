@@ -188,12 +188,15 @@ class MainWindow(QMainWindow):
         container_layout.setSpacing(6)
 
         self.lang_server_icon = QLabel()
-        self.lang_server_text = QLabel("Language Server")
+        self.lang_server_text = QLabel()
         container_layout.addWidget(self.lang_server_icon)
         container_layout.addWidget(self.lang_server_text)
         statusbar.addPermanentWidget(container)
 
-        self.lang_server_status_update("Python", "icon/path.png")
+        self.lang_server_status_update("Language Server Error!", "../assets/icons/sync-error-svgrepo-com (1).png")
+        # commented because language server has not been added yet.
+        # self.lang_server_status_update("Language Server", "../assets/icons/sync-svgrepo-com (3).png")
+        # self.lang_server_status_update("Python", "../assets/icons/check-circle-svgrepo-com.png")
 
         # === Editor ===
         self.editor = CodeEditor()
@@ -276,13 +279,13 @@ class MainWindow(QMainWindow):
     
     def lang_server_status_update(self, text, icon_path):
         self.lang_server_text.setText(text)
-        # commented because icon has not been added.
-        # icon_pixel = QPixmap(icon_path).scaled(
-        #     16, 16,
-        #     Qt.AspectRatioMode.KeepAspectRatio,
-        #     Qt.TransformationMode.SmoothTransformation
-        # )
-        # self.lang_server_icon.setPixmap(icon_pixel)
+        # Setting language server status icon.
+        icon_pixel = QPixmap(icon_path).scaled(
+            12, 12,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.lang_server_icon.setPixmap(icon_pixel)
     
 def main():
     app = QApplication(sys.argv)

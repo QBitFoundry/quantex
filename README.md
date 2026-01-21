@@ -56,9 +56,11 @@ You can either clone and run Quantex from source, or download the ready-to-use e
 ### 🐍 Run from Source (for developers)
 
 ```bash
-git clone https://github.com/yourusername/quantex.git
+git clone https://github.com/QBitFoundry/quantex.git
 cd quantex
 pip install -r requirements.txt
+
+cd quantex
 python main.py
 ```
 

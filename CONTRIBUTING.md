@@ -8,7 +8,7 @@ We’re thrilled to have you join the community! 💻✨
 ## 🧰 Getting Started
 
 ### 1. Fork the repository
-Click the **Fork** button at the top-right of the [main repository](https://github.com/yourusername/quantex).  
+Click the **Fork** button at the top-right of the [main repository](https://github.com/QBitFoundry/quantex).  
 This creates your own copy where you can make changes freely.
 
 ### 2. Clone your fork
@@ -121,7 +121,7 @@ quantex/
 
 ### 🐞 Reporting Bugs
 
-If you find a bug, please open an [Issue](https://github.com/yourusername/quantex/issues) and include:
+If you find a bug, please open an [Issue](https://github.com/QBitFoundry/quantex/issues) and include:
 
 * Clear title and detailed description  
 * Steps to reproduce  
