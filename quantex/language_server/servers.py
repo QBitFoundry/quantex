@@ -1,8 +1,132 @@
 # Map file extensions to language server commands
+# LSP_SERVERS = {
+#     ".py": (["pyright-langserver", "--stdio"], "npm install -g pyright"),
+#     ".js": (["typescript-language-server", "--stdio"], "npm install -g typescript typescript-language-server"),
+#     ".ts": (["typescript-language-server", "--stdio"], "npm install -g typescript typescript-language-server"),
+#     ".cpp": (["clangd"], "sudo apt install -y clangd"),
+#     ".c": (["clangd"], "sudo apt install -y clangd"),
+# }
+# LSP_SERVERS = {
+#     ".py": (("pyright-langserver", ["--stdio"]), ("npm", ["install", "pyright"])),
+#     ".js": (("typescript-language-server", ["--stdio"]), ("npm", ["install", "typescript", "typescript-language-server"])),
+#     ".ts": (("typescript-language-server", ["--stdio"]), ("npm", ["install", "typescript", "typescript-language-server"])),
+#     # need OS support modification for the c families
+#     ".cpp": (["clangd"], "sudo apt install -y clangd"),
+#     ".c": (["clangd"], "sudo apt install -y clangd"),
+# }
+
+# lsp package will not be installed globally.
 LSP_SERVERS = {
-    ".py": ["pyright-langserver", "--stdio"],
-    ".js": ["typescript-language-server", "--stdio"],
-    ".ts": ["typescript-language-server", "--stdio"],
-    ".cpp": ["clangd"],
-    ".c": ["clangd"],
+    ".py": (("pyright-langserver", ["--stdio"]), ["npm", "install", "pyright"]),
+    ".js": (("typescript-language-server", ["--stdio"]), ["npm", "install", "typescript", "typescript-language-server"]),
+    ".ts": (("typescript-language-server", ["--stdio"]), ["npm", "install", "typescript", "typescript-language-server"]),
+    # need OS support modification for the c families
+    ".cpp": (["clangd"], "sudo apt install -y clangd"),
+    ".c": (["clangd"], "sudo apt install -y clangd"),
 }
+
+import subprocess
+from PyQt6.QtCore import QProcess
+from pathlib import Path
+import shutil, sys, os
+from PyQt6.QtCore import QCoreApplication, QTimer # just for tests
+
+app = QCoreApplication([])
+
+
+class PackageInstaller:
+    def __init__(self):
+        super().__init__()
+        self.extension = ".py"
+        self.run_command = LSP_SERVERS[self.extension][0]
+        self.install_command = LSP_SERVERS[self.extension][1]
+        # self.packages_path = str(Path(__file__).parent.resolve()) + "\\ServersPackages\\"
+        self.packages_path = os.path.join(os.getcwd(), "ServersPackages")
+
+    def get_path(self):
+        print(self.packages_path)
+
+    def check_4_node(self) -> bool:
+        if shutil.which("node") is None:
+            print("Please Install node first ...")
+            return False
+        
+        return True
+
+    def install(self):
+        print("Installing", self.run_command[0], "...")
+        
+        install_path = os.path.join(self.packages_path, self.run_command[0])
+        os.makedirs(install_path, exist_ok=True)
+
+        try:
+            if self.check_4_node():
+                if self.install_command:
+                    result = subprocess.run(self.install_command + ["--prefix", install_path], capture_output=True, text=True)
+                    
+                    if result.returncode != 0:
+                        raise SystemError
+        except:
+            print(self.run_command[0], "Failed to install!")
+
+
+class Server:
+    def __init__(self):
+        super().__init__()
+        self.process = QProcess()
+        self.extension = ".py"
+        self.run_command = None
+        # self.install_command = None
+        if LSP_SERVERS.get(self.extension):
+            self.run_command = LSP_SERVERS[self.extension][0]
+            # self.install_command = LSP_SERVERS[self.extension][1]
+    
+        self.process.readyReadStandardOutput.connect(self.on_output)
+        self.process.readyReadStandardError.connect(self.on_error)
+
+    def start(self):
+        print("Starting LSP ...")
+        # print(self.run_command[0], self.run_command[1])
+        pyright_dir = os.path.join(os.getcwd(), "ServersPackages", self.run_command[0], "node_modules", "pyright")
+        pyright_lsp = os.path.join(pyright_dir, "langserver.index.js")
+        try:
+            if self.run_command:
+                self.process.start("node", [pyright_lsp, "--stdio"])
+                # self.process.start(self.run_command[0], self.run_command[1])
+        except FileNotFoundError:
+            print(self.run_command[0], "not started!")
+            self.install()
+
+    def stop(self):
+        print("Stopping LSP ...")
+
+        if self.process.state() != QProcess.ProcessState.NotRunning:
+            self.process.terminate()
+            if not self.process.waitForFinished(5000):
+                print("Killing LSP process ...")
+                self.process.kill()
+                self.process.waitForFinished(3000)
+        
+        app.quit()
+
+        # super().stop(event) # fire it in CloseEvent
+
+    def on_output(self):
+        print("Server Output ...")
+        print("Output: ", self.process.readAllStandardOutput().data().decode())
+
+    def on_error(self):
+        print("Server Error ...")
+        print(self.process.readAllStandardError().data().decode())
+
+
+if __name__ == "__main__":
+    package_installer = PackageInstaller()
+    package_installer.get_path()
+    package_installer.install()
+        
+    server = Server()
+    server.start()
+    QTimer.singleShot(20000, server.stop)
+    app.exec()
+

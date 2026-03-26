@@ -13,6 +13,9 @@ class Client:
             bufsize=0
         )
         
+        print("Started LSP process:", self.process.pid)
+        print("Process running:", self.process.poll() is None)
+
         self._response = {}
         self._start_reader_thread()
         self._id=1
@@ -47,7 +50,9 @@ class Client:
                 elif "method" in message:
                     # Handles notification (Diagnostic)
                     print("Notification", message)
+                print("Message: ", message)
         
+        # print(self.process.stderr.read())
         threading.Thread(target=reader, daemon=True).start()
     
     def send_request(self, method, params):
@@ -75,3 +80,8 @@ class Client:
         header = f"Content-Length: {len(message_bytes)}\r\n\r\n"
         self.process.stdin.write(header + message_bytes)
         self.process.stdin.flush()
+
+
+# if __name__ == "__main__":
+#     server = Client()
+    # server.run()
