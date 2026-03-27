@@ -1,10 +1,8 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QWidget, QLabel, QHBoxLayout, QStatusBar
 from PyQt6.Qsci import QsciScintilla, QsciLexerPython, QsciAPIs
-from PyQt6.QtGui import QFont, QColor, QAction, QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from editor.languages_style import PythonStyles
 from languages_support.python import Python
-import sys
+from language_server.servers import Server
 
 # from language_server.client import Client
 from editor.theme import get_theme
@@ -18,7 +16,7 @@ class CodeEditor(QsciScintilla):
         self.setUtf8(True)
         self.setMarginLineNumbers(0, True)
         
-        theme_data = get_theme()
+        theme_data: dict = get_theme() # stores theme Dict, for deeper understanding visit theme.py
         self.set_config(theme_data)
 
         # Set the scroll to active only when text overflow horizontally.
@@ -31,20 +29,10 @@ class CodeEditor(QsciScintilla):
         # === Variable that store file changes data ===
         self.file_changes = {}
 
-        # # === Syntax Highlighting (Python) ===
-        # lexer = QsciLexerPython(self)
-        # PythonStyles(font, lexer).get_styles()
-        # self.setLexer(lexer)
-
-        # # === Autocomplete ===
-        # api = QsciAPIs(lexer)
-        # Python(api)
-
+        # === LCP LanguageServer ===
+        self.server: Server = Server()
         # Language server on text change
         self.textChanged.connect(self.on_text_change)
-
-        # api.prepare()
-        # lexer.setAPIs(api)
 
         self.setAutoCompletionSource(QsciScintilla.AutoCompletionSource.AcsAll)
         self.setAutoCompletionCaseSensitivity(False)
@@ -118,7 +106,18 @@ class CodeEditor(QsciScintilla):
         text_changed = self.text() or ""
     
     
-    def set_config(self, theme_data):
+    def set_config(self, theme_data: dict) -> None:
+        """
+            sets theme to QsciScintilla editor. Sets the:
+            - Colors
+            - footer bar as caret and fonts.
+            - fonts
+            ---
+
+            NOTE:
+                This function calls the code_decorator(font), passing the font
+        """
+
         self.setMarginsBackgroundColor(theme_data["marginBgColor"])
         self.setMarginsForegroundColor(theme_data["marginFgColor"])
         
@@ -145,6 +144,27 @@ class CodeEditor(QsciScintilla):
         self.setFont(font)
         self.setMarginsFont(font)
 
+        self.code_decorator(font)
+
+    
+    def code_decorator(self, font: QFont) -> None:
+        """
+            Sets the code assistance features
+            Like:
+            - Syntax Highlighting.
+            - Autocomplete.
+            - Suggestions Dropdown
+            ---
+
+            NOTE:
+                To set the lexer font is required.
+            ---
+
+            IMPORTANT:
+                This function uses QsciAPIs
+                for the lexer suggestions dropdown.
+        """
+
         # === Syntax Highlighting (Python) ===
         lexer = QsciLexerPython(self)
         PythonStyles(font, lexer).get_styles()
@@ -157,5 +177,11 @@ class CodeEditor(QsciScintilla):
         # Language server on text change
         # self.textChanged.connect(self.on_text_change)
 
-        # api.prepare()
-        # lexer.setAPIs(api)
+        api.prepare()
+        lexer.setAPIs(api)
+
+    def on_file_opened(self, path):
+        self.server.initialize(path)
+
+    def on_close(self):
+        self.server.stop()

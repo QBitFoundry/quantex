@@ -8,4 +8,4 @@
 ### Future use:
  - If needed might be utilized for language with less support.
 
- - [-] Must implement QProcess instead of subprocess.
+ - [ ] Must implement QProcess instead of subprocess.

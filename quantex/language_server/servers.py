@@ -31,17 +31,16 @@ from pathlib import Path
 import shutil, sys, os
 from PyQt6.QtCore import QCoreApplication, QTimer # just for tests
 
-app = QCoreApplication([])
-
 
 class PackageInstaller:
-    def __init__(self):
+    def __init__(self, path: Path):
         super().__init__()
-        self.extension = ".py"
+        # self.extension = ".py"
+        self.extension = Path(path).suffix
         self.run_command = LSP_SERVERS[self.extension][0]
         self.install_command = LSP_SERVERS[self.extension][1]
         # self.packages_path = str(Path(__file__).parent.resolve()) + "\\ServersPackages\\"
-        self.packages_path = os.path.join(os.getcwd(), "ServersPackages")
+        self.packages_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ServersPackages")
 
     def get_path(self):
         print(self.packages_path)
@@ -53,7 +52,7 @@ class PackageInstaller:
         
         return True
 
-    def install(self):
+    def install(self) -> bool:
         print("Installing", self.run_command[0], "...")
         
         install_path = os.path.join(self.packages_path, self.run_command[0])
@@ -66,8 +65,12 @@ class PackageInstaller:
                     
                     if result.returncode != 0:
                         raise SystemError
+                    
+                    return True
         except:
             print(self.run_command[0], "Failed to install!")
+
+        return False
 
 
 class Server:
@@ -84,10 +87,49 @@ class Server:
         self.process.readyReadStandardOutput.connect(self.on_output)
         self.process.readyReadStandardError.connect(self.on_error)
 
-    def start(self):
+    def setup(self, path: Path) -> bool:
+        package_installer: PackageInstaller = PackageInstaller(path)
+        package_installer.get_path()
+        return package_installer.install()
+
+    def initialize(self, path: Path) -> None:
+        setup_successful: bool = self.setup(path)
+
+        if setup_successful:
+            self.start()
+            return None
+        
+        print("Skipped due to setup error ...")
+
+    def run(self):
         print("Starting LSP ...")
         # print(self.run_command[0], self.run_command[1])
         pyright_dir = os.path.join(os.getcwd(), "ServersPackages", self.run_command[0], "node_modules", "pyright")
+        pyright_lsp = os.path.join(pyright_dir, "langserver.index.js")
+        try:
+            if self.run_command:
+                self.process.start("node", [pyright_lsp, "--stdio"])
+                # self.process.start(self.run_command[0], self.run_command[1])
+        except FileNotFoundError:
+            print(self.run_command[0], "not started!")
+            self.install()
+
+    def terminate(self, app):
+        print("Stopping LSP ...")
+
+        if self.process.state() != QProcess.ProcessState.NotRunning:
+            self.process.terminate()
+            if not self.process.waitForFinished(5000):
+                print("Killing LSP process ...")
+                self.process.kill()
+                self.process.waitForFinished(3000)
+        
+        app.quit()
+    
+    def start(self):
+        print("Starting LSP ...")
+        # print(self.run_command[0], self.run_command[1])
+        pyright_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ServersPackages", self.run_command[0], "node_modules", "pyright")
         pyright_lsp = os.path.join(pyright_dir, "langserver.index.js")
         try:
             if self.run_command:
@@ -107,7 +149,7 @@ class Server:
                 self.process.kill()
                 self.process.waitForFinished(3000)
         
-        app.quit()
+        # app.quit()
 
         # super().stop(event) # fire it in CloseEvent
 
@@ -120,13 +162,22 @@ class Server:
         print(self.process.readAllStandardError().data().decode())
 
 
-if __name__ == "__main__":
-    package_installer = PackageInstaller()
-    package_installer.get_path()
-    package_installer.install()
-        
-    server = Server()
-    server.start()
-    QTimer.singleShot(20000, server.stop)
-    app.exec()
 
+
+
+def main() -> None:
+    app = QCoreApplication([])
+
+    server: Server = Server()
+    setup_successful: bool = server.setup("test.py") # use a .py path name for test.
+    
+    if setup_successful:
+        server.run()
+        QTimer.singleShot(20000, lambda: server.terminate(app))
+        app.exec()
+        return None
+
+    print("Skipped due to setup error ...")
+
+if __name__ == "__main__":
+    main()

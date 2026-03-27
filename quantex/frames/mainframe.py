@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QWidget, QLa
 from PyQt6.QtGui import QAction, QPixmap
 from PyQt6.QtCore import Qt
 import sys
+# from PyQt6.QtCore import QTimer
 # from language_server.client import Client
 from editor.editor import CodeEditor
 
@@ -90,6 +91,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.editor)
     
 
+    def closeEvent(self, event):
+        print("CLOSING WINDOW")
+        self.editor.on_close()
+        event.accept()
+    
+
     def centerWindow(self):
         screen_size = QApplication.primaryScreen().availableSize()
         window_size = self.geometry();
@@ -112,8 +119,14 @@ class MainWindow(QMainWindow):
                     # code = file.read()
                     self.editor.setText(file.read())
                 self.file_paths.append(file_path)
+
+                # print(file_path)
+
             except:
                 print("Fail to open!")
+            
+            # TODO: App freezes when installing LCP...
+            self.editor.on_file_opened(file_path)
     
     def safe_save_file(self):
         if len(self.file_paths) == 0:
