@@ -1,4 +1,8 @@
-# quantex
+<p align=center><img alt="" src=".github/assets/Logo.png" width=200 style="cursor: default;"></p>
+
+<h1 align=center>quantex</h1>
+
+<!-- # quantex -->
 Quantex — a lightweight, open-source code editor designed for speed, simplicity, and a futuristic coding experience. Built to help developers write, navigate, and manage code effortlessly with a clean and modern interface.
 
 <div align="center">
