@@ -1,0 +1,111 @@
+﻿name: Branch Flow Protection
+
+on:
+  pull_request:
+
+jobs:
+  enforce-branch-flow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR branch flow
+        env:
+          SOURCE: ${{ github.head_ref }}
+          TARGET: ${{ github.base_ref }}
+
+        run: |
+          echo "PR: $SOURCE -> $TARGET"
+
+          case "$SOURCE" in
+
+            # Block main going into lower branches
+            main)
+              echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+              echo " "
+              echo "❌ main cannot merge downward."
+              echo "⚠️ Error: Merging from main into '$TARGET' is prohibited."
+              exit 1
+              ;;
+
+            # Release branches can only go into main or develop
+            release/*)
+              if [[ "$TARGET" != "main" && "$TARGET" != "develop" ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ release/* branches must target main or develop."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+            # Hotfix/* branches can only go into main or release
+            hotfix/*)
+              if [[ "$TARGET" != "main" && "$TARGET" != "release" ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ hotfix/* branches must target main or release/*."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+            # Develop branches can only go into release
+            develop)
+              if [["$TARGET" != release/* ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ develop branch must target release/*."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+            # New-Features branches can only go into develop
+            new-features)
+              if [[ "$TARGET" != "develop" ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ new-features branch must target develop."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+            # Features/* branches can only go into feature
+            feature/*)
+              if [[ "$TARGET" != "new-features" ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ feature/* branches must target feature."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+            # Bug-fixes branches can only go into develop
+            bug-fixes)
+              if [[ "$TARGET" != "develop" ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ bug-fixes branch must target develop."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+            # Bugfixes/* branches can only go into bugfix
+            bugfix/*)
+              if [[ "$TARGET" != "bugfix" ]]; then
+                echo "🚀 $SOURCE -❌-> 🎯 $TARGET"
+                echo " "
+                echo "❌ bugfix/* branches must target bugfix."
+                echo "⚠️ Error: Merging from $SOURCE into '$TARGET' is prohibited."
+                exit 1
+              fi
+              ;;
+
+          esac
+
+          echo "✅ Branch flow is valid."
+          echo " "
+          echo "🚀 $SOURCE -✅-> 🎯 $TARGET"
